@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,18 +10,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ENUM untuk Role
+// ==========================================
+// 1. ENUMS (Pilihan Terbatas)
+// ==========================================
+
 enum Role {
   admin
   kasir
 }
 
+enum StatusPesanan {
+  PENDING    // Kolom 1: Pesanan Masuk (Baru)
+  PROCESSING // Kolom 2: Sedang Dipanggang (Proses)
+  UNPAID     // Kolom 3: Selesai Dipanggang / Menunggu Pembayaran
+  COMPLETED  // Masuk ke Riwayat Transaksi
+}
+
+enum MetodePembayaran {
+  CASH
+  EWALLET
+}
+
+// ==========================================
+// 2. MODELS (Tabel Database)
+// ==========================================
+
 model User {
   id            Int         @id @default(autoincrement())
   username      String      @unique
   password_hash String
-  role          Role
-  transaksi     Transaksi[] // Relasi kasir ke transaksi
+  role          Role        @default(kasir)
+  transaksi     Transaksi[] 
 }
 
 model Menu {
@@ -27,26 +49,35 @@ model Menu {
   deskripsi       String?
   protein         String          @default("Ayam")
   harga           Int
-  stok            Int             @default(100) // Tambahan stok
+  stok            Int             @default(100) 
   level_pedas_min Int             @default(0)
   level_pedas_max Int             @default(5)
-  kalori          Int             @default(0)   // Tambahan kalori
+  kalori          Int             @default(0)   
   favorit         Boolean         @default(false)
   tersedia        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  TransaksiItem   TransaksiItem[] // Relasi menu ke item transaksi
+  
+  TransaksiItem   TransaksiItem[] 
 }
 
 model Transaksi {
-  id           Int             @id @default(autoincrement())
-  kasir_id     Int
-  total_harga  Int
-  uang_bayar   Int
-  kembalian    Int
-  tanggal      DateTime        @default(now())
-  kasir        User            @relation(fields: [kasir_id], references: [id])
-  items        TransaksiItem[]
+  id                Int               @id @default(autoincrement())
+  kasir_id          Int?              // Opsional, ID User penginput
+  kasir_nama        String?           // Nama Kasir yang muncul di struk (Manual Input/Auto)
+  nama_pelanggan    String            
+  nomor_meja        String            
+  status            StatusPesanan     @default(PENDING) 
+  metode_pembayaran MetodePembayaran? 
+  total_harga       Int
+  uang_bayar        Int?              // Uang yang diterima dari pelanggan
+  kembalian         Int?              // Selisih bayar
+  tanggal           DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt // Penting untuk tracking perpindahan status
+  
+  // Relasi
+  kasir             User?             @relation(fields: [kasir_id], references: [id])
+  items             TransaksiItem[]
 }
 
 model TransaksiItem {
@@ -55,7 +86,9 @@ model TransaksiItem {
   menu_id      Int
   jumlah       Int
   harga_satuan Int
-  transaksi    Transaksi @relation(fields: [transaksi_id], references: [id])
+  
+  // Relasi
+  transaksi    Transaksi @relation(fields: [transaksi_id], references: [id], onDelete: Cascade)
   menu         Menu      @relation(fields: [menu_id], references: [id])
 }
 
@@ -64,4 +97,5 @@ model Cabang {
   nama_cabang String
   alamat      String
   link_maps   String?
+  telepon     String?
 }
