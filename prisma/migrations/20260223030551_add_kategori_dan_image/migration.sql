@@ -1,4 +1,4 @@
-git init-- CreateEnum
+-- CreateEnum
 CREATE TYPE "Role" AS ENUM ('admin', 'kasir');
 
 -- CreateEnum
@@ -22,6 +22,8 @@ CREATE TABLE "Menu" (
     "id" SERIAL NOT NULL,
     "nama" TEXT NOT NULL,
     "deskripsi" TEXT,
+    "kategori" TEXT NOT NULL DEFAULT 'Sate',
+    "image" TEXT,
     "protein" TEXT NOT NULL DEFAULT 'Ayam',
     "harga" INTEGER NOT NULL,
     "stok" INTEGER NOT NULL DEFAULT 100,

@@ -1,153 +1,269 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  X, Send, Sparkles, Bot, Loader2, 
-  ShieldCheck, Flame, Zap, Crown
-} from "lucide-react";
+import { X, Send, Sparkles, MessageSquare, Info, Bot, Zap } from "lucide-react";
 
-const SUGGESTIONS = ["Menu Terlaris? 🌟", "Info Gizi & Protein 💪", "Promo Member 💎"];
+// Definisi tipe data
+interface Menu {
+  nama: string;
+  harga: string;
+  image: string;
+  deskripsi: string;
+}
+
+interface Message {
+  id: number;
+  text: string;
+  sender: "user" | "bot";
+  menus?: Menu[];
+  catatan?: string;
+}
+
+const SUGGESTIONS = ["Menu Terlaris?", "Jam Buka?", "Lokasi?", "Promo?"];
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Halo Kak! ✨ Saya AI Concierge Sate Taichan. Siap membantu pesanan premium Kakak.", sender: "bot" }
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      text: "Halo Kak! 👋 Saya Sadjodo AI Assistant. Ada yang bisa saya bantu untuk pesanan hari ini?",
+      sender: "bot",
+    },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (scrollRef.current)
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
   }, [messages, isOpen, isLoading]);
 
   const handleSend = async (text: string = input) => {
     if (!text.trim() || isLoading) return;
-    setMessages(prev => [...prev, { id: Date.now(), text, sender: "user" }]);
+    setMessages((prev) => [...prev, { id: Date.now(), text, sender: "user" }]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
       const data = await response.json();
-      
-      let botReply = data.jawaban;
-      if (data.menu_direkomendasikan && data.menu_direkomendasikan !== "-") {
-        botReply += `\n\n✨ **${data.menu_direkomendasikan}**\nRp${data.harga}`;
-      }
 
-      setMessages(prev => [...prev, { id: Date.now(), text: botReply, sender: "bot" }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          text: data.jawaban,
+          sender: "bot",
+          menus: data.menus || [],
+          catatan: data.catatan !== "-" ? data.catatan : undefined,
+        },
+      ]);
     } catch (error) {
-      setMessages(prev => [...prev, { id: Date.now(), text: "Maaf Kak, layanan sedang sibuk. 🙏", sender: "bot" }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          text: "Maaf Kak, sistem AI kami sedang gangguan. 🙏",
+          sender: "bot",
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed bottom-8 left-8 z-[100] flex flex-col items-start font-sans">
+    <>
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95, filter: "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: 30, scale: 0.95, filter: "blur(10px)" }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="w-[350px] md:w-[400px] h-[580px] bg-black/80 backdrop-blur-[30px] border border-white/20 rounded-[2.5rem] overflow-hidden shadow-[0_30px_100px_rgba(193,18,31,0.3)] flex flex-col"
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
+            // Tinggi dikurangi (h-[520px]) agar tidak terlalu atas
+            className="fixed bottom-24 right-6 lg:right-8 w-[90vw] md:w-[400px] h-[520px] max-h-[80vh] bg-[#020617]/90 backdrop-blur-3xl border border-cyan-500/30 rounded-[2rem] shadow-[0_20px_60px_rgba(6,182,212,0.2)] z-[100] flex flex-col overflow-hidden font-sans"
           >
-            {/* Header Luxury */}
-            <div className="p-6 relative overflow-hidden border-b border-white/10">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 blur-[60px] rounded-full pointer-events-none" />
-              <div className="flex justify-between items-center relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <motion.div 
-                       animate={{ rotate: [0, 5, -5, 0] }}
-                       transition={{ duration: 4, repeat: Infinity }}
-                       className="w-12 h-12 bg-gradient-to-tr from-[#C1121F] via-[#ff4d4d] to-[#ffbaba] rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(193,18,31,0.5)]"
-                    >
-                      <Crown size={24} className="text-white drop-shadow-md" />
-                    </motion.div>
-                    <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-[3px] border-black rounded-full shadow-lg" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-black text-base tracking-tight flex items-center gap-1.5">
-                      TAICHAN ELITE <Sparkles size={14} className="text-yellow-400 fill-yellow-400" />
-                    </h3>
-                    <p className="text-[10px] text-white/50 font-bold uppercase tracking-[0.2em]">Smart Concierge</p>
+            {/* --- BACKGROUND GLOW EFFECTS --- */}
+            <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-cyan-500/15 rounded-full blur-[80px] pointer-events-none" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-blue-600/15 rounded-full blur-[80px] pointer-events-none" />
+
+            {/* --- HEADER (Modern Glass Cyan Theme) --- */}
+            <div className="relative bg-[#020617]/60 px-6 py-5 flex justify-between items-center text-white shrink-0 border-b border-cyan-500/20 backdrop-blur-xl z-10">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-cyan-400 blur-lg opacity-40 animate-pulse rounded-full" />
+                  <div className="relative w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)] border border-white/20">
+                    <Bot size={24} className="text-white drop-shadow-md" />
                   </div>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="text-white/30 hover:text-white transition-all bg-white/5 p-2 rounded-full">
-                  <X size={20} />
-                </button>
+                <div>
+                  <h3 className="font-black text-[15px] tracking-wide flex items-center gap-1.5 leading-tight">
+                    Sadjodo AI
+                    <Sparkles size={14} className="text-cyan-400 fill-cyan-400" />
+                  </h3>
+                  <p className="text-[11px] text-cyan-200/80 flex items-center gap-1.5 mt-0.5 font-bold uppercase tracking-widest">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]" />
+                    Online
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-9 h-9 bg-white/5 hover:bg-cyan-500/20 border border-transparent hover:border-cyan-500/30 rounded-full flex items-center justify-center text-cyan-100 transition-all hover:rotate-90"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* Chat Space */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar bg-gradient-to-b from-transparent to-red-950/10">
+            {/* --- CHAT SPACE --- */}
+            <div
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide relative z-10"
+            >
               {messages.map((msg) => (
-                <motion.div 
-                  initial={{ opacity: 0, x: msg.sender === 'user' ? 15 : -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  key={msg.id} 
-                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                <div
+                  key={msg.id}
+                  className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
                 >
-                  <div className={`max-w-[85%] px-5 py-3 rounded-3xl text-[14px] leading-relaxed shadow-xl ${
-                    msg.sender === 'user' 
-                      ? 'bg-gradient-to-r from-[#C1121F] to-[#8a0d16] text-white rounded-tr-none' 
-                      : 'bg-white/10 border border-white/10 text-gray-100 rounded-tl-none backdrop-blur-md'
-                  }`}>
-                    {msg.text}
+                  {msg.sender === "user" ? (
+                    /* User Bubble (Cyan Gradient Glossy) */
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="max-w-[85%] bg-gradient-to-br from-cyan-500 to-blue-600 text-white px-5 py-3.5 rounded-[1.5rem] rounded-br-sm text-[13px] shadow-[0_8px_25px_rgba(6,182,212,0.3)] border border-cyan-300/30 relative overflow-hidden"
+                    >
+                      {/* Glass Shimmer Overlay */}
+                      <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+                      <span className="relative z-10 font-medium leading-relaxed">{msg.text}</span>
+                    </motion.div>
+                  ) : (
+                    /* Bot Space */
+                    <div className="max-w-[90%] w-full flex flex-col gap-2">
+                      {/* Bot Label */}
+                      <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest pl-2 flex items-center gap-1.5">
+                        <Bot size={12} /> Sadjodo AI
+                      </span>
+
+                      {/* Bot Text Bubble (Dark Glass) */}
+                      <motion.div 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="text-[13px] text-cyan-50 leading-relaxed bg-[#0f172a]/90 backdrop-blur-md border border-cyan-500/20 px-5 py-3.5 rounded-[1.5rem] rounded-tl-sm self-start shadow-[0_8px_30px_rgba(0,0,0,0.3)] relative overflow-hidden"
+                      >
+                         <div className="absolute -top-10 -right-10 w-24 h-24 bg-cyan-600/10 rounded-full blur-[20px] pointer-events-none" />
+                        <span className="relative z-10">{msg.text}</span>
+                      </motion.div>
+
+                      {/* Bot Menu Cards (Modern Hover Effect) */}
+                      {msg.menus && msg.menus.length > 0 && (
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 w-full snap-x mask-linear-fade">
+                          {msg.menus.map((m, i) => (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.1 }}
+                              key={i}
+                              className="min-w-[170px] w-[170px] bg-gradient-to-br from-[#0f172a] to-[#020617] border border-cyan-500/20 rounded-2xl overflow-hidden shrink-0 snap-center shadow-lg hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)] hover:border-cyan-400/50 transition-all group cursor-pointer"
+                            >
+                              <div className="h-28 relative overflow-hidden">
+                                <img
+                                  src={m.image}
+                                  alt={m.nama}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
+                                <div className="absolute bottom-2 left-2 bg-cyan-500/90 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-[10px] font-black shadow-[0_4px_15px_rgba(6,182,212,0.4)] border border-cyan-300/30">
+                                  Rp {m.harga}
+                                </div>
+                              </div>
+                              <div className="p-3">
+                                <h4 className="text-white text-[12px] font-bold mb-1 truncate tracking-tight">
+                                  {m.nama}
+                                </h4>
+                                <p className="text-cyan-200/60 text-[10px] line-clamp-2 leading-relaxed">
+                                  {m.deskripsi}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Bot Note/Catatan (Pill Style) */}
+                      {msg.catatan && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="text-[10px] text-cyan-100 font-medium bg-cyan-950/40 border border-cyan-500/20 px-3.5 py-2 rounded-xl flex items-center gap-2 self-start mt-1 backdrop-blur-sm shadow-inner"
+                        >
+                          <Info size={14} className="text-cyan-400 shrink-0" />
+                          <span className="leading-tight">{msg.catatan}</span>
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Typing Indicator */}
+              {isLoading && (
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-[#0f172a]/90 border border-cyan-500/20 px-5 py-4 rounded-[1.5rem] rounded-tl-sm flex gap-1.5 items-center shadow-lg">
+                    <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+                    <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.1 }} className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+                    <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
                   </div>
                 </motion.div>
-              ))}
-              
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white/5 px-5 py-4 rounded-3xl rounded-tl-none border border-white/10 flex gap-2 items-center">
-                    <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                    <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                    <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                  </div>
-                </div>
               )}
             </div>
 
-            {/* Premium Suggestions */}
-            <div className="px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar border-t border-white/5">
-              {SUGGESTIONS.map((s, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => handleSend(s)}
-                  className="flex-shrink-0 text-[11px] font-bold bg-gradient-to-b from-white/10 to-white/5 hover:from-red-600 hover:to-red-700 border border-white/10 px-4 py-2 rounded-full text-white/80 hover:text-white transition-all transform active:scale-90"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            {/* Input Bar */}
-            <div className="p-6 bg-black/40">
-              <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-2 pl-5 focus-within:border-red-500/50 focus-within:ring-1 focus-within:ring-red-500/20 transition-all shadow-2xl">
-                <input 
+            {/* --- INPUT AREA --- */}
+            <div className="p-4 bg-[#020617] border-t border-cyan-500/10 shrink-0 relative z-10">
+              {/* Quick Suggestions */}
+              <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar mask-linear-fade pr-4">
+                {SUGGESTIONS.map((s, i) => (
+                  <motion.button
+                    key={i}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleSend(s)}
+                    className="shrink-0 text-[11px] bg-[#0f172a] hover:bg-cyan-900/40 border border-cyan-500/20 hover:border-cyan-400/50 px-4 py-2 rounded-xl text-cyan-100 hover:text-white transition-all font-bold shadow-sm"
+                  >
+                    {s}
+                  </motion.button>
+                ))}
+              </div>
+              
+              {/* Input Field */}
+              <div className="flex items-center gap-2 bg-[#0a0f1e] border border-cyan-500/20 focus-within:border-cyan-400/60 focus-within:ring-1 focus-within:ring-cyan-500/30 rounded-2xl p-1.5 transition-all shadow-inner group">
+                <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Katakan sesuatu..."
-                  className="flex-1 bg-transparent text-white text-[14px] focus:outline-none placeholder:text-white/20"
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  placeholder="Tanya Sadjodo AI..."
+                  className="flex-1 bg-transparent text-[13px] text-white px-3 focus:outline-none placeholder:text-gray-500 font-medium"
                 />
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleSend()} 
+                  onClick={() => handleSend()}
                   disabled={!input.trim()}
-                  className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center hover:shadow-[0_0_15px_rgba(255,255,255,0.5)] disabled:opacity-20 transition-all"
+                  className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                 >
-                  <Send size={18} />
+                  <Send size={16} className="ml-0.5" />
                 </motion.button>
               </div>
             </div>
@@ -155,41 +271,35 @@ export default function ChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* FAB: The Attention Seeker */}
+      {/* --- FLOATING BUTTON (KAPSUL KANAN BAWAH) --- */}
       {!isOpen && (
-        <div className="relative group">
-          {/* Pulsing Aura */}
-          <div className="absolute inset-0 bg-red-600 rounded-full blur-2xl opacity-40 group-hover:opacity-80 animate-pulse transition-opacity" />
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.03, y: -2 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 flex items-center gap-3.5 bg-[#020617]/90 backdrop-blur-xl border border-cyan-500/40 pl-2.5 pr-6 py-2.5 rounded-full shadow-[0_15px_40px_rgba(6,182,212,0.3)] z-[100] group overflow-hidden"
+        >
+          {/* Efek Kilauan Kaca di Tombol Kapsul */}
+          <div className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
           
-          <motion.button
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsOpen(true)}
-            className="relative h-14 px-8 bg-gradient-to-r from-black via-[#1a1a1a] to-black border border-white/20 rounded-full flex items-center gap-4 shadow-2xl overflow-hidden"
-          >
-            {/* Animated Shine Effect */}
-            <motion.div 
-              animate={{ x: [-100, 200] }}
-              transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-              className="absolute top-0 left-0 w-20 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12" 
-            />
-            
-            <div className="relative">
-              <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                <Flame size={18} className="text-white fill-white" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-400 rounded-full animate-ping" />
-            </div>
-            
-            <div className="flex flex-col items-start leading-none">
-              <span className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Exclusive AI</span>
-              <span className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                Asisten Taichan <Sparkles size={14} className="text-yellow-400" />
-              </span>
-            </div>
-          </motion.button>
-        </div>
+          <div className="relative w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)] border border-cyan-300/40">
+            <MessageSquare size={20} className="text-white fill-white group-hover:scale-110 transition-transform" />
+            {/* Indikator Online Hijau di Ikon */}
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 border-2 border-[#020617] rounded-full animate-pulse shadow-[0_0_10px_#34d399]" />
+          </div>
+          
+          <div className="flex flex-col items-start pr-1">
+            <span className="text-white font-black text-[14px] tracking-wide flex items-center gap-1.5 leading-tight">
+              Sadjodo AI
+            </span>
+            <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest leading-none mt-1">
+              Assistant
+            </span>
+          </div>
+        </motion.button>
       )}
-    </div>
+    </>
   );
 }

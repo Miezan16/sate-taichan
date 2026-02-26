@@ -47,6 +47,8 @@ model Menu {
   id              Int             @id @default(autoincrement())
   nama            String
   deskripsi       String?
+  kategori        String          @default("Sate") // Tambahkan ini
+  image           String?         // Tambahkan ini untuk foto
   protein         String          @default("Ayam")
   harga           Int
   stok            Int             @default(100) 
@@ -57,6 +59,7 @@ model Menu {
   tersedia        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  
   
   TransaksiItem   TransaksiItem[] 
 }
